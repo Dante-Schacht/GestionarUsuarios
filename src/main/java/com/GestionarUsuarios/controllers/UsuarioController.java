@@ -2,24 +2,23 @@ package com.GestionarUsuarios.controllers;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
+import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.CollectionModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.GestionarUsuarios.dto.CrearUsuarioRequest;
 import com.GestionarUsuarios.dto.UsuarioDTO;
 import com.GestionarUsuarios.models.Usuario;
 import com.GestionarUsuarios.services.UsuarioService;
+import com.GestionarUsuarios.assembler.UsuarioAssembler;
 
 import lombok.RequiredArgsConstructor;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 
 @RestController
 @RequestMapping("/api/usuarios")
@@ -27,20 +26,27 @@ import lombok.RequiredArgsConstructor;
 public class UsuarioController {
 
     private final UsuarioService service;
+    private final UsuarioAssembler assembler;
 
     @GetMapping
-    public List<UsuarioDTO> getAll() {
-        return service.listarUsuarios();
+    public CollectionModel<EntityModel<UsuarioDTO>> getAll() {
+        List<EntityModel<UsuarioDTO>> usuarios = service.listarUsuarios()
+                .stream()
+                .map(assembler::toModel)
+                .collect(Collectors.toList());
+
+        return CollectionModel.of(usuarios,
+                linkTo(methodOn(UsuarioController.class).getAll()).withSelfRel());
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getById(@PathVariable Integer id) {
         try {
             UsuarioDTO usuario = service.buscarUsuarioPorId(id);
-            return ResponseEntity.ok(usuario);
+            return ResponseEntity.ok(assembler.toModel(usuario));
         } catch (RuntimeException ex) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                                .body(Map.of("mensaje", ex.getMessage()));
+                    .body(Map.of("mensaje", ex.getMessage()));
         }
     }
 
@@ -51,9 +57,9 @@ public class UsuarioController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<UsuarioDTO> editarUsuario(@PathVariable Integer id, @RequestBody UsuarioDTO usuarioDTO) {
+    public ResponseEntity<EntityModel<UsuarioDTO>> editarUsuario(@PathVariable Integer id, @RequestBody UsuarioDTO usuarioDTO) {
         UsuarioDTO actualizado = service.actualizarUsuario(id, usuarioDTO);
-        return ResponseEntity.ok(actualizado);
+        return ResponseEntity.ok(assembler.toModel(actualizado));
     }
 
     @DeleteMapping("/{id}")

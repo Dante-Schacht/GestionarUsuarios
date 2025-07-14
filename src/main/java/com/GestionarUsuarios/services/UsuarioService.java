@@ -29,7 +29,7 @@ public class UsuarioService {
 
     public List<UsuarioDTO> listarUsuarios() {
         return usuarioRepo.findAll().stream()
-            .map(u -> new UsuarioDTO(u.getIdUsuario(), u.getNombreUsuario(), u.getEmail(), u.getRol(), u.getEstado()))
+            .map(u -> new UsuarioDTO(u.getIdUsuario(), u.getNombreUsuario(), u.getEmail(), u.getRol(), u.getContrasena(), u.getEstado()))
             .toList();
     }
 
